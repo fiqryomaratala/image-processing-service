@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
+	"go.uber.org/zap"
 )
 
-func run(cfg config.Config, logger *log.Logger) {
-	logger.Printf("Image Worker Started | env=%s", cfg.App.Env)
+func run(cfg *config.Config, logger *zap.Logger) {
+	logger.Info("image worker started", zap.String("environment", cfg.App.Env))
 }

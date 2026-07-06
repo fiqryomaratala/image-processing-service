@@ -1,15 +1,15 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/shared"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
-func run(cfg config.Config, logger *log.Logger) error {
+func run(cfg *config.Config, logger *zap.Logger) error {
 	if cfg.App.Env == gin.ReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -23,7 +23,7 @@ func run(cfg config.Config, logger *log.Logger) error {
 		})
 	})
 
-	logger.Printf("api server listening on %s", cfg.App.Address())
+	logger.Info("api server listening", zap.String("address", cfg.App.Address()))
 
 	return router.Run(cfg.App.Address())
 }

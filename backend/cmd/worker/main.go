@@ -6,8 +6,11 @@ import (
 )
 
 func main() {
-	cfg := config.Load()
-	logger := ilogger.New()
+	cfg := config.MustLoad()
+	logger := ilogger.MustNew(cfg.App)
+	defer func() {
+		_ = logger.Sync()
+	}()
 
 	run(cfg, logger)
 }
