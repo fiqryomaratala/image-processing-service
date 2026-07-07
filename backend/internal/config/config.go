@@ -3,11 +3,12 @@ package config
 import (
 	"errors"
 	"fmt"
-	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -19,22 +20,23 @@ const (
 
 type Config struct {
 	App      AppConfig
-	Postgres PostgresConfig
+	Database DatabaseConfig
 	RabbitMQ RabbitMQConfig
 	MinIO    MinIOConfig
+	Logger   LoggerConfig
 }
 
 type AppConfig struct {
-	Env      string
-	Host     string
-	Port     string
-	LogLevel string
+	Name string
+	Env  string
+	Host string
+	Port string
 }
 
-type PostgresConfig struct {
+type DatabaseConfig struct {
 	Host     string
 	Port     string
-	Name     string
+	Database string
 	User     string
 	Password string
 }
@@ -54,128 +56,175 @@ type MinIOConfig struct {
 	RootPassword string
 }
 
+type LoggerConfig struct {
+	Level string
+}
+
 var (
-	cfg  *Config
-	once sync.Once
-	err  error
+	instance *Config
+	loadOnce sync.Once
+	loadErr  error
 )
 
-func Load() (*Config, error) {
-	once.Do(func() {
-		_ = godotenv.Load()
+func Load() error {
+	loadOnce.Do(func() {
+		v := newViper()
 
-		c := &Config{
-			App: AppConfig{
-				Env:      getEnv("APP_ENV", defaultAppEnv),
-				Host:     getEnv("APP_HOST", defaultAppHost),
-				Port:     getEnv("APP_PORT", defaultAppPort),
-				LogLevel: getEnv("LOG_LEVEL", defaultLogLevel),
-			},
-			Postgres: PostgresConfig{
-				Host:     getEnv("POSTGRES_HOST", ""),
-				Port:     getEnv("POSTGRES_PORT", ""),
-				Name:     getEnv("POSTGRES_DB", ""),
-				User:     getEnv("POSTGRES_USER", ""),
-				Password: getEnv("POSTGRES_PASSWORD", ""),
-			},
-			RabbitMQ: RabbitMQConfig{
-				Host:     getEnv("RABBITMQ_HOST", ""),
-				Port:     getEnv("RABBITMQ_PORT", ""),
-				User:     getEnv("RABBITMQ_USER", ""),
-				Password: getEnv("RABBITMQ_PASSWORD", ""),
-			},
-			MinIO: MinIOConfig{
-				Host:         getEnv("MINIO_HOST", ""),
-				APIPort:      getEnv("MINIO_API_PORT", ""),
-				ConsolePort:  getEnv("MINIO_CONSOLE_PORT", ""),
-				RootUser:     getEnv("MINIO_ROOT_USER", ""),
-				RootPassword: getEnv("MINIO_ROOT_PASSWORD", ""),
-			},
-		}
-
-		err = c.Validate()
-		if err != nil {
+		if err := loadEnvFiles(v); err != nil {
+			loadErr = err
 			return
 		}
 
-		cfg = c
+		cfg := &Config{
+			App: AppConfig{
+				Name: v.GetString("APP_NAME"),
+				Env:  v.GetString("APP_ENV"),
+				Host: v.GetString("APP_HOST"),
+				Port: v.GetString("APP_PORT"),
+			},
+			Database: DatabaseConfig{
+				Host:     v.GetString("POSTGRES_HOST"),
+				Port:     v.GetString("POSTGRES_PORT"),
+				Database: v.GetString("POSTGRES_DB"),
+				User:     v.GetString("POSTGRES_USER"),
+				Password: v.GetString("POSTGRES_PASSWORD"),
+			},
+			RabbitMQ: RabbitMQConfig{
+				Host:     v.GetString("RABBITMQ_HOST"),
+				Port:     v.GetString("RABBITMQ_PORT"),
+				User:     v.GetString("RABBITMQ_USER"),
+				Password: v.GetString("RABBITMQ_PASSWORD"),
+			},
+			MinIO: MinIOConfig{
+				Host:         v.GetString("MINIO_HOST"),
+				APIPort:      v.GetString("MINIO_API_PORT"),
+				ConsolePort:  v.GetString("MINIO_CONSOLE_PORT"),
+				RootUser:     v.GetString("MINIO_ROOT_USER"),
+				RootPassword: v.GetString("MINIO_ROOT_PASSWORD"),
+			},
+			Logger: LoggerConfig{
+				Level: v.GetString("LOG_LEVEL"),
+			},
+		}
+
+		if err := cfg.validate(); err != nil {
+			loadErr = err
+			return
+		}
+
+		instance = cfg
 	})
 
-	return cfg, err
+	return loadErr
 }
 
-func MustLoad() *Config {
-	c, err := Load()
-	if err != nil {
-		panic(err)
+func Get() *Config {
+	if instance == nil {
+		panic("config is not loaded: call config.Load() before config.Get()")
 	}
 
-	return c
+	return instance
 }
 
-func (c *Config) Validate() error {
-	required := map[string]string{
-		"POSTGRES_HOST":         c.Postgres.Host,
-		"POSTGRES_PORT":         c.Postgres.Port,
-		"POSTGRES_DB":           c.Postgres.Name,
-		"POSTGRES_USER":         c.Postgres.User,
-		"POSTGRES_PASSWORD":     c.Postgres.Password,
-		"RABBITMQ_HOST":         c.RabbitMQ.Host,
-		"RABBITMQ_PORT":         c.RabbitMQ.Port,
-		"RABBITMQ_USER":         c.RabbitMQ.User,
-		"RABBITMQ_PASSWORD":     c.RabbitMQ.Password,
-		"MINIO_HOST":            c.MinIO.Host,
-		"MINIO_API_PORT":        c.MinIO.APIPort,
-		"MINIO_CONSOLE_PORT":    c.MinIO.ConsolePort,
-		"MINIO_ROOT_USER":       c.MinIO.RootUser,
-		"MINIO_ROOT_PASSWORD":   c.MinIO.RootPassword,
-	}
+func (c AppConfig) Address() string {
+	return fmt.Sprintf("%s:%s", c.Host, c.Port)
+}
 
-	for key, value := range required {
-		if value == "" {
-			return fmt.Errorf("%s is required", key)
+func newViper() *viper.Viper {
+	v := viper.New()
+	v.SetConfigType("env")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
+	v.SetDefault("APP_NAME", "image-processing-service")
+	v.SetDefault("APP_ENV", defaultAppEnv)
+	v.SetDefault("APP_HOST", defaultAppHost)
+	v.SetDefault("APP_PORT", defaultAppPort)
+	v.SetDefault("LOG_LEVEL", defaultLogLevel)
+
+	return v
+}
+
+func loadEnvFiles(v *viper.Viper) error {
+	for _, filename := range []string{".env", ".env.local"} {
+		if err := mergeEnvFile(v, filename); err != nil {
+			return err
 		}
-	}
-
-	if err := validatePort("APP_PORT", c.App.Port); err != nil {
-		return err
-	}
-	if err := validatePort("POSTGRES_PORT", c.Postgres.Port); err != nil {
-		return err
-	}
-	if err := validatePort("RABBITMQ_PORT", c.RabbitMQ.Port); err != nil {
-		return err
-	}
-	if err := validatePort("MINIO_API_PORT", c.MinIO.APIPort); err != nil {
-		return err
-	}
-	if err := validatePort("MINIO_CONSOLE_PORT", c.MinIO.ConsolePort); err != nil {
-		return err
 	}
 
 	return nil
 }
 
-func (a AppConfig) Address() string {
-	return fmt.Sprintf("%s:%s", a.Host, a.Port)
-}
+func mergeEnvFile(v *viper.Viper, filename string) error {
+	for _, basePath := range []string{".", ".."} {
+		path := filepath.Join(basePath, filename)
 
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+		v.SetConfigFile(path)
+		if err := v.MergeInConfig(); err != nil {
+			var configFileNotFoundError viper.ConfigFileNotFoundError
+			if errors.As(err, &configFileNotFoundError) {
+				continue
+			}
+
+			return fmt.Errorf("failed to load %s: %w", path, err)
+		}
+
+		return nil
 	}
 
-	return fallback
+	return nil
+}
+
+func (c *Config) validate() error {
+	required := map[string]string{
+		"POSTGRES_HOST":       c.Database.Host,
+		"POSTGRES_PORT":       c.Database.Port,
+		"POSTGRES_DB":         c.Database.Database,
+		"POSTGRES_USER":       c.Database.User,
+		"POSTGRES_PASSWORD":   c.Database.Password,
+		"RABBITMQ_HOST":       c.RabbitMQ.Host,
+		"RABBITMQ_PORT":       c.RabbitMQ.Port,
+		"RABBITMQ_USER":       c.RabbitMQ.User,
+		"RABBITMQ_PASSWORD":   c.RabbitMQ.Password,
+		"MINIO_HOST":          c.MinIO.Host,
+		"MINIO_API_PORT":      c.MinIO.APIPort,
+		"MINIO_CONSOLE_PORT":  c.MinIO.ConsolePort,
+		"MINIO_ROOT_USER":     c.MinIO.RootUser,
+		"MINIO_ROOT_PASSWORD": c.MinIO.RootPassword,
+	}
+
+	for key, value := range required {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("configuration error: %s is required", key)
+		}
+	}
+
+	for _, port := range []struct {
+		name  string
+		value string
+	}{
+		{name: "APP_PORT", value: c.App.Port},
+		{name: "POSTGRES_PORT", value: c.Database.Port},
+		{name: "RABBITMQ_PORT", value: c.RabbitMQ.Port},
+		{name: "MINIO_API_PORT", value: c.MinIO.APIPort},
+		{name: "MINIO_CONSOLE_PORT", value: c.MinIO.ConsolePort},
+	} {
+		if err := validatePort(port.name, port.value); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func validatePort(name, value string) error {
 	port, err := strconv.Atoi(value)
 	if err != nil {
-		return fmt.Errorf("%s must be a valid number", name)
+		return fmt.Errorf("configuration error: %s must be a valid number", name)
 	}
 
 	if port < 1 || port > 65535 {
-		return errors.New(name + " must be between 1 and 65535")
+		return fmt.Errorf("configuration error: %s must be between 1 and 65535", name)
 	}
 
 	return nil

@@ -1,0 +1,69 @@
+package bootstrap
+
+import (
+	"fmt"
+
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
+	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/minio/minio-go/v7"
+	"go.uber.org/zap"
+)
+
+type App struct {
+	Config        *config.Config
+	Logger        *zap.Logger
+	Postgres      *pgxpool.Pool
+	RabbitMQConn  *amqp.Connection
+	RabbitMQChan  *amqp.Channel
+	MinIO         *minio.Client
+}
+
+func NewApp(cfg *config.Config, logger *zap.Logger) (*App, error) {
+	db, err := database.NewPostgres(cfg.Database)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize postgres: %w", err)
+	}
+
+	rabbitConn, rabbitChan, err := queue.NewRabbitMQ(cfg.RabbitMQ)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize rabbitmq: %w", err)
+	}
+
+	minioClient, err := storage.NewMinIO(cfg.MinIO)
+	if err != nil {
+		rabbitChan.Close()
+		rabbitConn.Close()
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize minio: %w", err)
+	}
+
+	app := &App{
+		Config:       cfg,
+		Logger:       logger,
+		Postgres:     db,
+		RabbitMQConn: rabbitConn,
+		RabbitMQChan: rabbitChan,
+		MinIO:        minioClient,
+	}
+
+	return app, nil
+}
+
+func (a *App) Close() {
+	if a.RabbitMQChan != nil {
+		_ = a.RabbitMQChan.Close()
+	}
+
+	if a.RabbitMQConn != nil {
+		_ = a.RabbitMQConn.Close()
+	}
+
+	if a.Postgres != nil {
+		a.Postgres.Close()
+	}
+}

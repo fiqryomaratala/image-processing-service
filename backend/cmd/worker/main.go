@@ -6,8 +6,12 @@ import (
 )
 
 func main() {
-	cfg := config.MustLoad()
-	logger := ilogger.MustNew(cfg.App)
+	if err := config.Load(); err != nil {
+		panic(err)
+	}
+
+	cfg := config.Get()
+	logger := ilogger.MustNew(cfg.Logger, cfg.App)
 	defer func() {
 		_ = logger.Sync()
 	}()

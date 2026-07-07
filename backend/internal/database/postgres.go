@@ -9,14 +9,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgres(cfg config.PostgresConfig) (*pgxpool.Pool, error) {
+func NewPostgres(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
-		cfg.Name,
+		cfg.Database,
 	)
 
 	poolConfig, err := pgxpool.ParseConfig(dsn)

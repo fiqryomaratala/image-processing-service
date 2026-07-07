@@ -15,9 +15,9 @@ var (
 	initErr  error
 )
 
-func New(cfg config.AppConfig) (*zap.Logger, error) {
+func New(cfg config.LoggerConfig, app config.AppConfig) (*zap.Logger, error) {
 	once.Do(func() {
-		zapConfig := buildConfig(cfg)
+		zapConfig := buildConfig(cfg, app)
 
 		instance, initErr = zapConfig.Build()
 	})
@@ -25,8 +25,8 @@ func New(cfg config.AppConfig) (*zap.Logger, error) {
 	return instance, initErr
 }
 
-func MustNew(cfg config.AppConfig) *zap.Logger {
-	logger, err := New(cfg)
+func MustNew(cfg config.LoggerConfig, app config.AppConfig) *zap.Logger {
+	logger, err := New(cfg, app)
 	if err != nil {
 		panic(err)
 	}
@@ -34,14 +34,14 @@ func MustNew(cfg config.AppConfig) *zap.Logger {
 	return logger
 }
 
-func buildConfig(cfg config.AppConfig) zap.Config {
+func buildConfig(cfg config.LoggerConfig, app config.AppConfig) zap.Config {
 	zapConfig := zap.NewProductionConfig()
 
-	if strings.EqualFold(cfg.Env, "development") {
+	if strings.EqualFold(app.Env, "development") {
 		zapConfig = zap.NewDevelopmentConfig()
 	}
 
-	zapConfig.Level = zap.NewAtomicLevelAt(parseLevel(cfg.LogLevel))
+	zapConfig.Level = zap.NewAtomicLevelAt(parseLevel(cfg.Level))
 	zapConfig.EncoderConfig.TimeKey = "timestamp"
 
 	return zapConfig
