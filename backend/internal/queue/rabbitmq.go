@@ -70,27 +70,69 @@ func Close() error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	var closeErr error
-
-	if channel != nil && !channel.IsClosed() {
-		if err := channel.Close(); err != nil {
-			closeErr = fmt.Errorf("failed to close rabbitmq channel: %w", err)
+	if err := closeChannelLocked(); err != nil {
+		if closeConnErr := closeConnectionLocked(); closeConnErr != nil {
+			return fmt.Errorf("%v; %w", err, closeConnErr)
 		}
+
+		return err
 	}
 
-	channel = nil
+	return closeConnectionLocked()
+}
 
-	if connection != nil && !connection.IsClosed() {
-		if err := connection.Close(); err != nil && closeErr == nil {
-			closeErr = fmt.Errorf("failed to close rabbitmq connection: %w", err)
-		}
-	}
+func CloseChannel() error {
+	mu.Lock()
+	defer mu.Unlock()
 
-	connection = nil
+	return closeChannelLocked()
+}
 
-	return closeErr
+func CloseConnection() error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	return closeConnectionLocked()
 }
 
 func buildURL(cfg config.RabbitMQConfig) string {
 	return fmt.Sprintf("amqp://%s:%s@%s:%s/", cfg.User, cfg.Password, cfg.Host, cfg.Port)
+}
+
+func closeChannelLocked() error {
+	if channel == nil {
+		return nil
+	}
+
+	if channel.IsClosed() {
+		channel = nil
+		return nil
+	}
+
+	if err := channel.Close(); err != nil {
+		return fmt.Errorf("failed to close rabbitmq channel: %w", err)
+	}
+
+	channel = nil
+
+	return nil
+}
+
+func closeConnectionLocked() error {
+	if connection == nil {
+		return nil
+	}
+
+	if connection.IsClosed() {
+		connection = nil
+		return nil
+	}
+
+	if err := connection.Close(); err != nil {
+		return fmt.Errorf("failed to close rabbitmq connection: %w", err)
+	}
+
+	connection = nil
+
+	return nil
 }

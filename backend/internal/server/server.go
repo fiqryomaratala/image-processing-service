@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -48,6 +49,10 @@ func (s *Server) Run() error {
 	log.Info("Listening on "+s.http.Addr, zap.String("address", s.http.Addr))
 
 	return s.http.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.http.Shutdown(ctx)
 }
 
 func (s *Server) Engine() *gin.Engine {

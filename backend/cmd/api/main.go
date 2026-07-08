@@ -1,6 +1,7 @@
 package main
 
 import (
+	iapp "github.com/fiqryomaratala/image-processing-service/backend/internal/app"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
@@ -64,7 +65,7 @@ func main() {
 	httpServer := server.New()
 	logger.Info("HTTP Server initialized", zap.String("address", cfg.App.Address()))
 
-	if err := httpServer.Run(); err != nil {
+	if err := iapp.Run(httpServer); err != nil {
 		logger.Fatal("failed to run api server", zap.Error(err))
 	}
 }

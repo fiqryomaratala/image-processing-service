@@ -1,6 +1,7 @@
 package main
 
 import (
+	iapp "github.com/fiqryomaratala/image-processing-service/backend/internal/app"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
@@ -63,4 +64,8 @@ func main() {
 	logger.Info("Worker started", zap.String("service", cfg.App.Name))
 
 	run(cfg, logger)
+
+	if err := iapp.Run(nil); err != nil {
+		logger.Fatal("failed to run worker lifecycle", zap.Error(err))
+	}
 }
