@@ -1,0 +1,83 @@
+basePath: /
+definitions:
+  response.ErrorBody:
+    properties:
+      errors:
+        items:
+          $ref: '#/definitions/response.ErrorItem'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  response.ErrorItem:
+    properties:
+      code:
+        example: VALIDATION_ERROR
+        type: string
+      field:
+        example: file
+        type: string
+      message:
+        example: file is required
+        type: string
+    type: object
+  response.HealthData:
+    properties:
+      status:
+        example: healthy
+        type: string
+    type: object
+  response.HealthSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/response.HealthData'
+      message:
+        example: Image Processing Service API is running
+        type: string
+      meta: {}
+      success:
+        example: true
+        type: boolean
+    type: object
+info:
+  contact:
+    email: dev@image-processing.local
+    name: Image Processing Service Team
+  description: REST API documentation for the Image Processing Service project.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Image Processing Service API
+  version: "1.0"
+paths:
+  /api/v1/health:
+    get:
+      description: Returns the current API health status.
+      parameters:
+      - description: Trigger validation error example
+        in: query
+        name: fail
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HealthSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      summary: Health check
+      tags:
+      - System
+swagger: "2.0"

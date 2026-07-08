@@ -12,6 +12,16 @@ func NewHealthHandler() *HealthHandler {
 	return &HealthHandler{}
 }
 
+// Get godoc
+// @Summary Health check
+// @Description Returns the current API health status.
+// @Tags System
+// @Produce json
+// @Param fail query bool false "Trigger validation error example"
+// @Success 200 {object} response.HealthSuccessResponse
+// @Failure 400 {object} response.ErrorBody
+// @Failure 500 {object} response.ErrorBody
+// @Router /api/v1/health [get]
 func (h *HealthHandler) Get(c *gin.Context) {
 	if c.Query("fail") == "true" {
 		_ = c.Error(
