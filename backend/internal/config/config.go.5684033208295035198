@@ -12,16 +12,16 @@ import (
 )
 
 const (
-	defaultAppEnv             = "development"
-	defaultAppHost            = "0.0.0.0"
-	defaultAppPort            = "8080"
-	defaultLogLevel           = "info"
-	defaultDBSSLMode          = "disable"
-	defaultDBTimeZone         = "UTC"
-	defaultMinIOUseSSL        = false
-	defaultCORSOrigins        = "*"
-	defaultCORSMethods        = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-	defaultCORSHeaders        = "Origin,Content-Type,Accept,Authorization,X-Request-ID"
+	defaultAppEnv      = "development"
+	defaultAppHost     = "0.0.0.0"
+	defaultAppPort     = "8080"
+	defaultLogLevel    = "info"
+	defaultDBSSLMode   = "disable"
+	defaultDBTimeZone  = "UTC"
+	defaultMinIOUseSSL = false
+	defaultCORSOrigins = "*"
+	defaultCORSMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+	defaultCORSHeaders = "Origin,Content-Type,Accept,Authorization,X-Request-ID"
 	defaultUploadMaxSizeBytes = int64(20 * 1024 * 1024)
 	defaultUploadExtensions   = "jpg,jpeg,png,webp"
 	defaultUploadMIMETypes    = "image/jpeg,image/png,image/webp"
