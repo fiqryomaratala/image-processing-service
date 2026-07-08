@@ -1,9 +1,6 @@
 package main
 
 import (
-	"os"
-
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/bootstrap"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"go.uber.org/zap"
@@ -14,21 +11,21 @@ func main() {
 		panic(err)
 	}
 
+	if err := ilogger.Initialize(); err != nil {
+		panic(err)
+	}
+
 	cfg := config.Get()
-	logger := ilogger.MustNew(cfg.Logger, cfg.App)
+	logger := ilogger.Get()
 	defer func() {
 		_ = logger.Sync()
 	}()
 
-	app, err := bootstrap.NewApp(cfg, logger)
-	if err != nil {
-		logger.Fatal("failed to bootstrap application", zap.Error(err))
-	}
-	defer app.Close()
+	logger.Info("Configuration loaded", zap.String("environment", cfg.App.Env))
+	logger.Info("Logger initialized", zap.String("level", cfg.Logger.Level))
+	logger.Info("API Server starting...", zap.String("address", cfg.App.Address()))
 
-	if err := run(app); err != nil {
+	if err := run(cfg, logger); err != nil {
 		logger.Fatal("failed to run api server", zap.Error(err))
 	}
-
-	os.Exit(0)
 }

@@ -3,16 +3,13 @@ package main
 import (
 	"net/http"
 
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/bootstrap"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/shared"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-func run(app *bootstrap.App) error {
-	cfg := app.Config
-	logger := app.Logger
-
+func run(cfg *config.Config, logger *zap.Logger) error {
 	if cfg.App.Env == gin.ReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}

@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -11,51 +12,65 @@ import (
 
 var (
 	instance *zap.Logger
-	once     sync.Once
+	initOnce sync.Once
 	initErr  error
 )
 
-func New(cfg config.LoggerConfig, app config.AppConfig) (*zap.Logger, error) {
-	once.Do(func() {
-		zapConfig := buildConfig(cfg, app)
+func Initialize() error {
+	initOnce.Do(func() {
+		cfg := config.Get()
+		zapConfig, err := buildConfig(cfg.Logger, cfg.App)
+		if err != nil {
+			initErr = err
+			return
+		}
 
 		instance, initErr = zapConfig.Build()
 	})
 
-	return instance, initErr
+	return initErr
 }
 
-func MustNew(cfg config.LoggerConfig, app config.AppConfig) *zap.Logger {
-	logger, err := New(cfg, app)
-	if err != nil {
-		panic(err)
+func Get() *zap.Logger {
+	if instance == nil {
+		panic("logger is not initialized: call logger.Initialize() before logger.Get()")
 	}
 
-	return logger
+	return instance
 }
 
-func buildConfig(cfg config.LoggerConfig, app config.AppConfig) zap.Config {
+func buildConfig(cfg config.LoggerConfig, app config.AppConfig) (zap.Config, error) {
 	zapConfig := zap.NewProductionConfig()
 
 	if strings.EqualFold(app.Env, "development") {
 		zapConfig = zap.NewDevelopmentConfig()
 	}
 
-	zapConfig.Level = zap.NewAtomicLevelAt(parseLevel(cfg.Level))
-	zapConfig.EncoderConfig.TimeKey = "timestamp"
+	level, err := parseLevel(cfg.Level)
+	if err != nil {
+		return zap.Config{}, err
+	}
 
-	return zapConfig
+	zapConfig.Level = zap.NewAtomicLevelAt(level)
+	zapConfig.EncoderConfig.TimeKey = "timestamp"
+	zapConfig.DisableStacktrace = true
+
+	return zapConfig, nil
 }
 
-func parseLevel(level string) zapcore.Level {
+func parseLevel(level string) (zapcore.Level, error) {
 	switch strings.ToLower(level) {
 	case "debug":
-		return zapcore.DebugLevel
+		return zapcore.DebugLevel, nil
+	case "info", "":
+		return zapcore.InfoLevel, nil
 	case "warn":
-		return zapcore.WarnLevel
+		return zapcore.WarnLevel, nil
 	case "error":
-		return zapcore.ErrorLevel
+		return zapcore.ErrorLevel, nil
+	case "fatal":
+		return zapcore.FatalLevel, nil
 	default:
-		return zapcore.InfoLevel
+		return zapcore.InfoLevel, fmt.Errorf("invalid logger level: %s", level)
 	}
 }
