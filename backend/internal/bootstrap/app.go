@@ -24,16 +24,11 @@ type App struct {
 
 func NewApp(cfg *config.Config, logger *zap.Logger) (*App, error) {
 	db := database.Get()
-
-	rabbitConn, rabbitChan, err := queue.NewRabbitMQ(cfg.RabbitMQ)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize rabbitmq: %w", err)
-	}
+	rabbitConn := queue.GetConnection()
+	rabbitChan := queue.GetChannel()
 
 	minioClient, err := storage.NewMinIO(cfg.MinIO)
 	if err != nil {
-		rabbitChan.Close()
-		rabbitConn.Close()
 		return nil, fmt.Errorf("failed to initialize minio: %w", err)
 	}
 
@@ -51,11 +46,7 @@ func NewApp(cfg *config.Config, logger *zap.Logger) (*App, error) {
 
 func (a *App) Close() {
 	if a.RabbitMQChan != nil {
-		_ = a.RabbitMQChan.Close()
-	}
-
-	if a.RabbitMQConn != nil {
-		_ = a.RabbitMQConn.Close()
+		_ = queue.Close()
 	}
 
 	if a.Postgres != nil {
