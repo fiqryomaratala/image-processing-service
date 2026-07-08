@@ -1,8 +1,6 @@
 package bootstrap
 
 import (
-	"fmt"
-
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
@@ -26,11 +24,7 @@ func NewApp(cfg *config.Config, logger *zap.Logger) (*App, error) {
 	db := database.Get()
 	rabbitConn := queue.GetConnection()
 	rabbitChan := queue.GetChannel()
-
-	minioClient, err := storage.NewMinIO(cfg.MinIO)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize minio: %w", err)
-	}
+	minioClient := storage.GetClient()
 
 	app := &App{
 		Config:       cfg,
@@ -51,5 +45,9 @@ func (a *App) Close() {
 
 	if a.Postgres != nil {
 		_ = database.Close()
+	}
+
+	if a.MinIO != nil {
+		_ = storage.Close()
 	}
 }

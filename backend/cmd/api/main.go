@@ -5,6 +5,7 @@ import (
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
 	"go.uber.org/zap"
 )
 
@@ -45,6 +46,20 @@ func main() {
 	}
 
 	logger.Info("RabbitMQ health check passed")
+
+	if err := storage.Initialize(); err != nil {
+		logger.Fatal("failed to initialize MinIO", zap.Error(err))
+	}
+
+	if err := storage.EnsureBucket(); err != nil {
+		logger.Fatal("failed to ensure MinIO bucket", zap.Error(err))
+	}
+
+	if err := storage.Health(); err != nil {
+		logger.Fatal("storage health check failed", zap.Error(err))
+	}
+
+	logger.Info("Storage health check passed", zap.String("bucket", cfg.MinIO.BucketName))
 	logger.Info("API Server started", zap.String("address", cfg.App.Address()))
 
 	if err := run(cfg, logger); err != nil {

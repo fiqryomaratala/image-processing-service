@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	defaultAppEnv     = "development"
-	defaultAppHost    = "0.0.0.0"
-	defaultAppPort    = "8080"
-	defaultLogLevel   = "info"
-	defaultDBSSLMode  = "disable"
-	defaultDBTimeZone = "UTC"
+	defaultAppEnv      = "development"
+	defaultAppHost     = "0.0.0.0"
+	defaultAppPort     = "8080"
+	defaultLogLevel    = "info"
+	defaultDBSSLMode   = "disable"
+	defaultDBTimeZone  = "UTC"
+	defaultMinIOUseSSL = false
 )
 
 type Config struct {
@@ -58,6 +59,8 @@ type MinIOConfig struct {
 	ConsolePort  string
 	RootUser     string
 	RootPassword string
+	BucketName   string
+	UseSSL       bool
 }
 
 type LoggerConfig struct {
@@ -107,6 +110,8 @@ func Load() error {
 				ConsolePort:  v.GetString("MINIO_CONSOLE_PORT"),
 				RootUser:     v.GetString("MINIO_ROOT_USER"),
 				RootPassword: v.GetString("MINIO_ROOT_PASSWORD"),
+				BucketName:   v.GetString("MINIO_BUCKET_NAME"),
+				UseSSL:       v.GetBool("MINIO_USE_SSL"),
 			},
 			Logger: LoggerConfig{
 				Level: v.GetString("LOG_LEVEL"),
@@ -149,6 +154,7 @@ func newViper() *viper.Viper {
 	v.SetDefault("LOG_LEVEL", defaultLogLevel)
 	v.SetDefault("POSTGRES_SSLMODE", defaultDBSSLMode)
 	v.SetDefault("POSTGRES_TIMEZONE", defaultDBTimeZone)
+	v.SetDefault("MINIO_USE_SSL", defaultMinIOUseSSL)
 
 	return v
 }
@@ -201,6 +207,7 @@ func (c *Config) validate() error {
 		"MINIO_CONSOLE_PORT":  c.MinIO.ConsolePort,
 		"MINIO_ROOT_USER":     c.MinIO.RootUser,
 		"MINIO_ROOT_PASSWORD": c.MinIO.RootPassword,
+		"MINIO_BUCKET_NAME":   c.MinIO.BucketName,
 	}
 
 	for key, value := range required {
