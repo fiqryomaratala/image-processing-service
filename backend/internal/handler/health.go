@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"net/http"
-
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/shared"
+	apperrors "github.com/fiqryomaratala/image-processing-service/backend/internal/errors"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,11 +13,19 @@ func NewHealthHandler() *HealthHandler {
 }
 
 func (h *HealthHandler) Get(c *gin.Context) {
-	c.JSON(http.StatusOK, shared.HTTPResponse{
-		Success: true,
-		Message: "Image Processing Service API is running",
-		Data: gin.H{
-			"status": "healthy",
-		},
-	})
+	if c.Query("fail") == "true" {
+		_ = c.Error(
+			apperrors.Validation(
+				"Validation failed",
+				[]apperrors.FieldError{
+					apperrors.NewFieldError("fail", "fail must not be true"),
+				},
+			),
+		)
+		return
+	}
+
+	response.Success(c, "Image Processing Service API is running", gin.H{
+		"status": "healthy",
+	}, nil)
 }

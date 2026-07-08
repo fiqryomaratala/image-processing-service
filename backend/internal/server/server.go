@@ -28,6 +28,7 @@ func New(appCfg config.AppConfig, corsCfg config.CORSConfig, log *zap.Logger, he
 		middleware.RequestID(),
 		middleware.CORS(corsCfg),
 		middleware.Logger(log),
+		middleware.ErrorHandler(log),
 		middleware.Recovery(log),
 	)
 

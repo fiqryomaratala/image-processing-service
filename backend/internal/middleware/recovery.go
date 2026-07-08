@@ -1,28 +1,28 @@
 package middleware
 
 import (
-	"net/http"
+	"fmt"
 
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/shared"
+	apperrors "github.com/fiqryomaratala/image-processing-service/backend/internal/errors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 func Recovery(log *zap.Logger) gin.HandlerFunc {
-	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
-		log.Error("panic recovered",
-			zap.Any("error", recovered),
-			zap.String("request_id", getRequestID(c)),
-			zap.String("method", c.Request.Method),
-			zap.String("path", c.Request.URL.Path),
-		)
+	_ = log
 
-		c.AbortWithStatusJSON(http.StatusInternalServerError, shared.HTTPResponse{
-			Success: false,
-			Message: "Internal server error",
-			Data: gin.H{
-				"request_id": getRequestID(c),
-			},
-		})
-	})
+	return func(c *gin.Context) {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				panicErr := fmt.Errorf("panic recovered: %v", recovered)
+
+				_ = c.Error(
+					apperrors.Internal("Internal server error").WithCause(panicErr),
+				)
+				c.Abort()
+			}
+		}()
+
+		c.Next()
+	}
 }
