@@ -12,10 +12,12 @@ import (
 )
 
 const (
-	defaultAppEnv   = "development"
-	defaultAppHost  = "0.0.0.0"
-	defaultAppPort  = "8080"
-	defaultLogLevel = "info"
+	defaultAppEnv     = "development"
+	defaultAppHost    = "0.0.0.0"
+	defaultAppPort    = "8080"
+	defaultLogLevel   = "info"
+	defaultDBSSLMode  = "disable"
+	defaultDBTimeZone = "UTC"
 )
 
 type Config struct {
@@ -39,6 +41,8 @@ type DatabaseConfig struct {
 	Database string
 	User     string
 	Password string
+	SSLMode  string
+	TimeZone string
 }
 
 type RabbitMQConfig struct {
@@ -88,6 +92,8 @@ func Load() error {
 				Database: v.GetString("POSTGRES_DB"),
 				User:     v.GetString("POSTGRES_USER"),
 				Password: v.GetString("POSTGRES_PASSWORD"),
+				SSLMode:  v.GetString("POSTGRES_SSLMODE"),
+				TimeZone: v.GetString("POSTGRES_TIMEZONE"),
 			},
 			RabbitMQ: RabbitMQConfig{
 				Host:     v.GetString("RABBITMQ_HOST"),
@@ -141,6 +147,8 @@ func newViper() *viper.Viper {
 	v.SetDefault("APP_HOST", defaultAppHost)
 	v.SetDefault("APP_PORT", defaultAppPort)
 	v.SetDefault("LOG_LEVEL", defaultLogLevel)
+	v.SetDefault("POSTGRES_SSLMODE", defaultDBSSLMode)
+	v.SetDefault("POSTGRES_TIMEZONE", defaultDBTimeZone)
 
 	return v
 }
@@ -182,6 +190,8 @@ func (c *Config) validate() error {
 		"POSTGRES_DB":         c.Database.Database,
 		"POSTGRES_USER":       c.Database.User,
 		"POSTGRES_PASSWORD":   c.Database.Password,
+		"POSTGRES_SSLMODE":    c.Database.SSLMode,
+		"POSTGRES_TIMEZONE":   c.Database.TimeZone,
 		"RABBITMQ_HOST":       c.RabbitMQ.Host,
 		"RABBITMQ_PORT":       c.RabbitMQ.Port,
 		"RABBITMQ_USER":       c.RabbitMQ.User,

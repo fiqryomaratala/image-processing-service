@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"go.uber.org/zap"
 )
@@ -23,7 +24,17 @@ func main() {
 
 	logger.Info("Configuration loaded", zap.String("environment", cfg.App.Env))
 	logger.Info("Logger initialized", zap.String("level", cfg.Logger.Level))
-	logger.Info("API Server starting...", zap.String("address", cfg.App.Address()))
+
+	if err := database.Initialize(); err != nil {
+		logger.Fatal("failed to initialize PostgreSQL", zap.Error(err))
+	}
+
+	if err := database.Health(); err != nil {
+		logger.Fatal("database health check failed", zap.Error(err))
+	}
+
+	logger.Info("Database health check passed")
+	logger.Info("API Server started", zap.String("address", cfg.App.Address()))
 
 	if err := run(cfg, logger); err != nil {
 		logger.Fatal("failed to run api server", zap.Error(err))

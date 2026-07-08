@@ -7,30 +7,26 @@ import (
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/minio/minio-go/v7"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type App struct {
 	Config       *config.Config
 	Logger       *zap.Logger
-	Postgres     *pgxpool.Pool
+	Postgres     *gorm.DB
 	RabbitMQConn *amqp.Connection
 	RabbitMQChan *amqp.Channel
 	MinIO        *minio.Client
 }
 
 func NewApp(cfg *config.Config, logger *zap.Logger) (*App, error) {
-	db, err := database.NewPostgres(cfg.Database)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize postgres: %w", err)
-	}
+	db := database.Get()
 
 	rabbitConn, rabbitChan, err := queue.NewRabbitMQ(cfg.RabbitMQ)
 	if err != nil {
-		db.Close()
 		return nil, fmt.Errorf("failed to initialize rabbitmq: %w", err)
 	}
 
@@ -38,7 +34,6 @@ func NewApp(cfg *config.Config, logger *zap.Logger) (*App, error) {
 	if err != nil {
 		rabbitChan.Close()
 		rabbitConn.Close()
-		db.Close()
 		return nil, fmt.Errorf("failed to initialize minio: %w", err)
 	}
 
@@ -64,6 +59,6 @@ func (a *App) Close() {
 	}
 
 	if a.Postgres != nil {
-		a.Postgres.Close()
+		_ = database.Close()
 	}
 }
