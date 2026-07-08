@@ -10,29 +10,27 @@ import (
 	"time"
 
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/server"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
 	"go.uber.org/zap"
 )
 
 const shutdownTimeout = 10 * time.Second
 
-func Run(httpServer *server.Server) error {
-	log := logger.Get()
+func Run(application *App) error {
+	log := application.Logger
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(signalCh)
 
 	var serverErrCh <-chan error
-	if httpServer != nil {
+	if application.HTTPServer != nil {
 		errCh := make(chan error, 1)
 		serverErrCh = errCh
 
 		go func() {
-			if err := httpServer.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := application.HTTPServer.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				errCh <- err
 			}
 			close(errCh)
@@ -42,7 +40,7 @@ func Run(httpServer *server.Server) error {
 	select {
 	case sig := <-signalCh:
 		log.Info("Shutdown signal received", zap.String("signal", sig.String()))
-		return shutdown(httpServer)
+		return shutdown(application)
 	case err, ok := <-serverErrCh:
 		if !ok {
 			return nil
@@ -52,16 +50,16 @@ func Run(httpServer *server.Server) error {
 	}
 }
 
-func shutdown(httpServer *server.Server) error {
-	log := logger.Get()
+func shutdown(application *App) error {
+	log := application.Logger
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	var shutdownErr error
 
-	if httpServer != nil {
+	if application.HTTPServer != nil {
 		log.Info("Stopping HTTP server...")
-		if err := httpServer.Shutdown(ctx); err != nil {
+		if err := application.HTTPServer.Shutdown(ctx); err != nil {
 			log.Error("Failed to stop HTTP server", zap.Error(err))
 			shutdownErr = errors.Join(shutdownErr, err)
 		} else {

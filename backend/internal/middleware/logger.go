@@ -3,14 +3,11 @@ package middleware
 import (
 	"time"
 
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-func Logger() gin.HandlerFunc {
-	log := logger.Get()
-
+func Logger(log *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startedAt := time.Now()
 

@@ -7,9 +7,7 @@ import (
 
 const apiV1Prefix = "/api/v1"
 
-func registerRoutes(router *gin.Engine) {
-	healthHandler := handler.NewHealthHandler()
-
+func registerRoutes(router *gin.Engine, healthHandler *handler.HealthHandler) {
 	v1 := router.Group(apiV1Prefix)
 	{
 		v1.GET("/health", healthHandler.Get)
