@@ -19,6 +19,9 @@ const (
 	defaultDBSSLMode   = "disable"
 	defaultDBTimeZone  = "UTC"
 	defaultMinIOUseSSL = false
+	defaultCORSOrigins = "*"
+	defaultCORSMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+	defaultCORSHeaders = "Origin,Content-Type,Accept,Authorization,X-Request-ID"
 )
 
 type Config struct {
@@ -27,6 +30,7 @@ type Config struct {
 	RabbitMQ RabbitMQConfig
 	MinIO    MinIOConfig
 	Logger   LoggerConfig
+	CORS     CORSConfig
 }
 
 type AppConfig struct {
@@ -65,6 +69,12 @@ type MinIOConfig struct {
 
 type LoggerConfig struct {
 	Level string
+}
+
+type CORSConfig struct {
+	AllowedOrigins string
+	AllowedMethods string
+	AllowedHeaders string
 }
 
 var (
@@ -116,6 +126,11 @@ func Load() error {
 			Logger: LoggerConfig{
 				Level: v.GetString("LOG_LEVEL"),
 			},
+			CORS: CORSConfig{
+				AllowedOrigins: v.GetString("CORS_ALLOWED_ORIGINS"),
+				AllowedMethods: v.GetString("CORS_ALLOWED_METHODS"),
+				AllowedHeaders: v.GetString("CORS_ALLOWED_HEADERS"),
+			},
 		}
 
 		if err := cfg.validate(); err != nil {
@@ -155,6 +170,9 @@ func newViper() *viper.Viper {
 	v.SetDefault("POSTGRES_SSLMODE", defaultDBSSLMode)
 	v.SetDefault("POSTGRES_TIMEZONE", defaultDBTimeZone)
 	v.SetDefault("MINIO_USE_SSL", defaultMinIOUseSSL)
+	v.SetDefault("CORS_ALLOWED_ORIGINS", defaultCORSOrigins)
+	v.SetDefault("CORS_ALLOWED_METHODS", defaultCORSMethods)
+	v.SetDefault("CORS_ALLOWED_HEADERS", defaultCORSHeaders)
 
 	return v
 }

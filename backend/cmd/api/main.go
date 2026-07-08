@@ -5,6 +5,7 @@ import (
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/server"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
 	"go.uber.org/zap"
 )
@@ -60,9 +61,10 @@ func main() {
 	}
 
 	logger.Info("Storage health check passed", zap.String("bucket", cfg.MinIO.BucketName))
-	logger.Info("API Server started", zap.String("address", cfg.App.Address()))
+	httpServer := server.New()
+	logger.Info("HTTP Server initialized", zap.String("address", cfg.App.Address()))
 
-	if err := run(cfg, logger); err != nil {
+	if err := httpServer.Run(); err != nil {
 		logger.Fatal("failed to run api server", zap.Error(err))
 	}
 }

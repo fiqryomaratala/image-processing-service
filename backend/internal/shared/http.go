@@ -1,6 +1,7 @@
 package shared
 
 type HTTPResponse struct {
-	Status  string `json:"status"`
+	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
