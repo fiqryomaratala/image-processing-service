@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -232,7 +233,7 @@ func mergeEnvFile(v *viper.Viper, filename string) error {
 		v.SetConfigFile(path)
 		if err := v.MergeInConfig(); err != nil {
 			var configFileNotFoundError viper.ConfigFileNotFoundError
-			if errors.As(err, &configFileNotFoundError) {
+			if errors.As(err, &configFileNotFoundError) || errors.Is(err, os.ErrNotExist) {
 				continue
 			}
 

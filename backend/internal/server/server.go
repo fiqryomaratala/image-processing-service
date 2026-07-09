@@ -7,6 +7,7 @@ import (
 
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/handler"
+	imagehandler "github.com/fiqryomaratala/image-processing-service/backend/internal/image/handler"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ type Server struct {
 	log    *zap.Logger
 }
 
-func New(appCfg config.AppConfig, corsCfg config.CORSConfig, log *zap.Logger, healthHandler *handler.HealthHandler) *Server {
+func New(appCfg config.AppConfig, corsCfg config.CORSConfig, log *zap.Logger, healthHandler *handler.HealthHandler, imageHandler *imagehandler.Handler) *Server {
 	if appCfg.Env == gin.ReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -32,7 +33,7 @@ func New(appCfg config.AppConfig, corsCfg config.CORSConfig, log *zap.Logger, he
 		middleware.Recovery(log),
 	)
 
-	registerRoutes(engine, healthHandler)
+	registerRoutes(engine, healthHandler, imageHandler)
 
 	return &Server{
 		engine: engine,

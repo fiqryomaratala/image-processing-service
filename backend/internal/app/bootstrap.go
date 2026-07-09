@@ -6,10 +6,14 @@ import (
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/config"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/database"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/handler"
+	imagehandler "github.com/fiqryomaratala/image-processing-service/backend/internal/image/handler"
+	imagerepository "github.com/fiqryomaratala/image-processing-service/backend/internal/image/repository"
+	imageservice "github.com/fiqryomaratala/image-processing-service/backend/internal/image/service"
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/server"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
+	"github.com/fiqryomaratala/image-processing-service/backend/internal/validator"
 	"go.uber.org/zap"
 )
 
@@ -67,7 +71,12 @@ func bootstrap(withHTTPServer bool) (*App, error) {
 	var httpServer *server.Server
 	if withHTTPServer {
 		healthHandler := handler.NewHealthHandler()
-		httpServer = server.New(cfg.App, cfg.CORS, log, healthHandler)
+		imageRepository := imagerepository.NewImageRepository(database.Get())
+		imageValidator := validator.NewImageValidator(cfg.Upload)
+		imageService := imageservice.NewImageService(imageRepository, imageValidator)
+		imageHTTPHandler := imagehandler.NewHandler(imageService)
+
+		httpServer = server.New(cfg.App, cfg.CORS, log, healthHandler, imageHTTPHandler)
 		log.Info("HTTP Server initialized", zap.String("address", cfg.App.Address()))
 	}
 

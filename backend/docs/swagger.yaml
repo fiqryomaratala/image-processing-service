@@ -1,5 +1,29 @@
 basePath: /
 definitions:
+  dto.UploadResponse:
+    properties:
+      content_type:
+        example: image/jpeg
+        type: string
+      filename:
+        example: sample.jpg
+        type: string
+      size:
+        example: 12345
+        type: integer
+    type: object
+  dto.UploadSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.UploadResponse'
+      message:
+        example: File validation passed
+        type: string
+      meta: {}
+      success:
+        example: true
+        type: boolean
+    type: object
   response.ErrorBody:
     properties:
       errors:
@@ -80,4 +104,34 @@ paths:
       summary: Health check
       tags:
       - System
+  /api/v1/images/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Accepts a multipart image file and validates it without storing
+        the file.
+      parameters:
+      - description: Image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UploadSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      summary: Upload image for validation
+      tags:
+      - Images
 swagger: "2.0"

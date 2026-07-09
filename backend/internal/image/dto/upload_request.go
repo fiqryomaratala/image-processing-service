@@ -1,15 +1,7 @@
 package dto
 
-import "io"
+import filepkg "github.com/fiqryomaratala/image-processing-service/backend/internal/file"
 
 type UploadRequest struct {
-	OriginalFilename string
-	StoredFilename   string
-	ObjectKey        string
-	BucketName       string
-	ContentType      string
-	FileSize         int64
-	Width            int
-	Height           int
-	File             io.Reader
+	File filepkg.Upload
 }
