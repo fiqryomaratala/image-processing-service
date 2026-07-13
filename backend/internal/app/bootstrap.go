@@ -12,7 +12,7 @@ import (
 	ilogger "github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/server"
-	"github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
+	storagepkg "github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/validator"
 	"go.uber.org/zap"
 )
@@ -57,13 +57,13 @@ func bootstrap(withHTTPServer bool) (*App, error) {
 	}
 	log.Info("RabbitMQ connected")
 
-	if err := storage.Initialize(); err != nil {
+	if err := storagepkg.Initialize(); err != nil {
 		return nil, fmt.Errorf("failed to initialize MinIO: %w", err)
 	}
-	if err := storage.EnsureBucket(); err != nil {
+	if err := storagepkg.EnsureBucket(); err != nil {
 		return nil, fmt.Errorf("failed to ensure MinIO bucket: %w", err)
 	}
-	if err := storage.Health(); err != nil {
+	if err := storagepkg.Health(); err != nil {
 		return nil, fmt.Errorf("storage health check failed: %w", err)
 	}
 	log.Info("MinIO connected", zap.String("bucket", cfg.MinIO.BucketName))
@@ -73,7 +73,8 @@ func bootstrap(withHTTPServer bool) (*App, error) {
 		healthHandler := handler.NewHealthHandler()
 		imageRepository := imagerepository.NewImageRepository(database.Get())
 		imageValidator := validator.NewImageValidator(cfg.Upload)
-		imageService := imageservice.NewImageService(imageRepository, imageValidator)
+		imageStorage := storagepkg.NewMinIOStorage(storagepkg.GetClient(), cfg.MinIO.BucketName)
+		imageService := imageservice.NewImageService(imageRepository, imageValidator, imageStorage)
 		imageHTTPHandler := imagehandler.NewHandler(imageService)
 
 		httpServer = server.New(cfg.App, cfg.CORS, log, healthHandler, imageHTTPHandler)
@@ -86,7 +87,7 @@ func bootstrap(withHTTPServer bool) (*App, error) {
 		database.Get(),
 		queue.GetConnection(),
 		queue.GetChannel(),
-		storage.GetClient(),
+		storagepkg.GetClient(),
 		httpServer,
 	)
 

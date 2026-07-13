@@ -56,5 +56,5 @@ func (h *Handler) Upload(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, "File validation passed", result, nil)
+	response.Success(c, "File uploaded successfully", result, nil)
 }

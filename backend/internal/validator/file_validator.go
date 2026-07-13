@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -84,5 +83,5 @@ func readContent(reader io.Reader, maxSize int64) ([]byte, int64, error) {
 		return nil, 0, FileTooLarge()
 	}
 
-	return bytes.Clone(content), int64(len(content)), nil
+	return content, int64(len(content)), nil
 }

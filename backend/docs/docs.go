@@ -111,13 +111,17 @@ const docTemplate = `{
         "dto.UploadResponse": {
             "type": "object",
             "properties": {
+                "bucket": {
+                    "type": "string",
+                    "example": "image-processing"
+                },
                 "content_type": {
                     "type": "string",
                     "example": "image/jpeg"
                 },
-                "filename": {
+                "object_key": {
                     "type": "string",
-                    "example": "sample.jpg"
+                    "example": "images/550e8400-e29b-41d4-a716-446655440000.jpg"
                 },
                 "size": {
                     "type": "integer",
@@ -133,7 +137,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "File validation passed"
+                    "example": "File uploaded successfully"
                 },
                 "meta": {},
                 "success": {

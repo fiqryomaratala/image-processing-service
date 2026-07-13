@@ -2,11 +2,14 @@ basePath: /
 definitions:
   dto.UploadResponse:
     properties:
+      bucket:
+        example: image-processing
+        type: string
       content_type:
         example: image/jpeg
         type: string
-      filename:
-        example: sample.jpg
+      object_key:
+        example: images/550e8400-e29b-41d4-a716-446655440000.jpg
         type: string
       size:
         example: 12345
@@ -17,7 +20,7 @@ definitions:
       data:
         $ref: '#/definitions/dto.UploadResponse'
       message:
-        example: File validation passed
+        example: File uploaded successfully
         type: string
       meta: {}
       success:
