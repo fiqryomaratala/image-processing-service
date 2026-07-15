@@ -74,7 +74,8 @@ func bootstrap(withHTTPServer bool) (*App, error) {
 		imageRepository := imagerepository.NewImageRepository(database.Get())
 		imageValidator := validator.NewImageValidator(cfg.Upload)
 		imageStorage := storagepkg.NewMinIOStorage(storagepkg.GetClient(), cfg.MinIO.BucketName)
-		imageService := imageservice.NewImageService(imageRepository, imageValidator, imageStorage)
+		imagePublisher := queue.NewRabbitMQPublisher(queue.GetChannel())
+		imageService := imageservice.NewImageService(imageRepository, imageValidator, imageStorage, imagePublisher)
 		imageHTTPHandler := imagehandler.NewHandler(imageService)
 
 		httpServer = server.New(cfg.App, cfg.CORS, log, healthHandler, imageHTTPHandler)

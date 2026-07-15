@@ -12,8 +12,8 @@ import (
 )
 
 // Upload godoc
-// @Summary Upload image and persist metadata
-// @Description Accepts a multipart image file, validates it, uploads it to MinIO, and persists metadata to PostgreSQL.
+// @Summary Upload image, persist metadata, and queue job
+// @Description Accepts a multipart image file, validates it, uploads it to MinIO, persists metadata to PostgreSQL, and publishes a job to RabbitMQ.
 // @Tags Images
 // @Accept mpfd
 // @Produce json
@@ -56,5 +56,5 @@ func (h *Handler) Upload(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, "Image uploaded successfully", result, nil)
+	response.Success(c, "Image uploaded and queued successfully", result, nil)
 }

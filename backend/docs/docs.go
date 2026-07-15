@@ -64,7 +64,7 @@ const docTemplate = `{
         },
         "/api/v1/images/upload": {
             "post": {
-                "description": "Accepts a multipart image file, validates it, uploads it to MinIO, and persists metadata to PostgreSQL.",
+                "description": "Accepts a multipart image file, validates it, uploads it to MinIO, persists metadata to PostgreSQL, and publishes a job to RabbitMQ.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -74,7 +74,7 @@ const docTemplate = `{
                 "tags": [
                     "Images"
                 ],
-                "summary": "Upload image and persist metadata",
+                "summary": "Upload image, persist metadata, and queue job",
                 "parameters": [
                     {
                         "type": "file",
@@ -111,10 +111,6 @@ const docTemplate = `{
         "dto.UploadResponse": {
             "type": "object",
             "properties": {
-                "content_type": {
-                    "type": "string",
-                    "example": "image/jpeg"
-                },
                 "id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
@@ -123,13 +119,9 @@ const docTemplate = `{
                     "type": "string",
                     "example": "images/550e8400-e29b-41d4-a716-446655440000.jpg"
                 },
-                "size": {
-                    "type": "integer",
-                    "example": 12345
-                },
                 "status": {
                     "type": "string",
-                    "example": "uploaded"
+                    "example": "queued"
                 }
             }
         },
@@ -141,7 +133,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "Image uploaded successfully"
+                    "example": "Image uploaded and queued successfully"
                 },
                 "meta": {},
                 "success": {

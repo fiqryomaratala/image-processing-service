@@ -10,6 +10,7 @@ import (
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/image/entity"
 	imagerepository "github.com/fiqryomaratala/image-processing-service/backend/internal/image/repository"
 	"github.com/fiqryomaratala/image-processing-service/backend/internal/logger"
+	queuepkg "github.com/fiqryomaratala/image-processing-service/backend/internal/queue"
 	storagepkg "github.com/fiqryomaratala/image-processing-service/backend/internal/storage"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -19,6 +20,7 @@ type ImageService struct {
 	repository imagerepository.Repository
 	validator  uploadValidator
 	storage    storagepkg.Storage
+	publisher  queuepkg.Publisher
 	logger     *zap.Logger
 }
 
@@ -28,11 +30,12 @@ type uploadValidator interface {
 
 var _ Service = (*ImageService)(nil)
 
-func NewImageService(repository imagerepository.Repository, validator uploadValidator, storage storagepkg.Storage) *ImageService {
+func NewImageService(repository imagerepository.Repository, validator uploadValidator, storage storagepkg.Storage, publisher queuepkg.Publisher) *ImageService {
 	return &ImageService{
 		repository: repository,
 		validator:  validator,
 		storage:    storage,
+		publisher:  publisher,
 		logger:     resolveLogger(),
 	}
 }
@@ -100,12 +103,42 @@ func (s *ImageService) Upload(ctx context.Context, request dto.UploadRequest) (*
 		zap.String("bucket", image.BucketName),
 	)
 
+	job := buildImageJob(image)
+
+	s.logger.Info("job publish started",
+		zap.String("image_id", job.ImageID),
+		zap.String("object_key", job.ObjectKey),
+	)
+
+	if err := s.publisher.PublishImageJob(ctx, job); err != nil {
+		s.logger.Warn("job publish failed",
+			zap.Error(err),
+			zap.String("image_id", job.ImageID),
+			zap.String("object_key", job.ObjectKey),
+		)
+
+		return nil, err
+	}
+
+	if err := s.repository.UpdateStatus(ctx, image.ID, entity.StatusQueued); err != nil {
+		s.logger.Warn("failed to update image status to queued",
+			zap.Error(err),
+			zap.String("image_id", image.ID.String()),
+			zap.String("object_key", image.ObjectKey),
+		)
+		return nil, err
+	}
+
+	s.logger.Info("job publish succeeded",
+		zap.String("image_id", image.ID.String()),
+		zap.String("object_key", image.ObjectKey),
+		zap.String("status", string(entity.StatusQueued)),
+	)
+
 	return &dto.UploadResponse{
-		ID:          image.ID.String(),
-		ObjectKey:   image.ObjectKey,
-		Status:      string(image.Status),
-		ContentType: image.ContentType,
-		Size:        image.FileSize,
+		ID:        image.ID.String(),
+		ObjectKey: image.ObjectKey,
+		Status:    string(entity.StatusQueued),
 	}, nil
 }
 
@@ -164,5 +197,16 @@ func buildImageEntity(validationResult *filepkg.ValidationResult, uploadResult *
 		Status:           entity.StatusUploaded,
 		CreatedAt:        now,
 		UpdatedAt:        now,
+	}
+}
+
+func buildImageJob(image *entity.Image) queuepkg.ImageJob {
+	return queuepkg.ImageJob{
+		ImageID:     image.ID.String(),
+		ObjectKey:   image.ObjectKey,
+		BucketName:  image.BucketName,
+		ContentType: image.ContentType,
+		Status:      string(entity.StatusQueued),
+		UploadedAt:  image.CreatedAt,
 	}
 }
