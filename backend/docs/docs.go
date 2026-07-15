@@ -64,7 +64,7 @@ const docTemplate = `{
         },
         "/api/v1/images/upload": {
             "post": {
-                "description": "Accepts a multipart image file and validates it without storing the file.",
+                "description": "Accepts a multipart image file, validates it, uploads it to MinIO, and persists metadata to PostgreSQL.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -74,7 +74,7 @@ const docTemplate = `{
                 "tags": [
                     "Images"
                 ],
-                "summary": "Upload image for validation",
+                "summary": "Upload image and persist metadata",
                 "parameters": [
                     {
                         "type": "file",
@@ -111,13 +111,13 @@ const docTemplate = `{
         "dto.UploadResponse": {
             "type": "object",
             "properties": {
-                "bucket": {
-                    "type": "string",
-                    "example": "image-processing"
-                },
                 "content_type": {
                     "type": "string",
                     "example": "image/jpeg"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "object_key": {
                     "type": "string",
@@ -126,6 +126,10 @@ const docTemplate = `{
                 "size": {
                     "type": "integer",
                     "example": 12345
+                },
+                "status": {
+                    "type": "string",
+                    "example": "uploaded"
                 }
             }
         },
@@ -137,7 +141,7 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string",
-                    "example": "File uploaded successfully"
+                    "example": "Image uploaded successfully"
                 },
                 "meta": {},
                 "success": {

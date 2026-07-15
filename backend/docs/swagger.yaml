@@ -2,11 +2,11 @@ basePath: /
 definitions:
   dto.UploadResponse:
     properties:
-      bucket:
-        example: image-processing
-        type: string
       content_type:
         example: image/jpeg
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       object_key:
         example: images/550e8400-e29b-41d4-a716-446655440000.jpg
@@ -14,13 +14,16 @@ definitions:
       size:
         example: 12345
         type: integer
+      status:
+        example: uploaded
+        type: string
     type: object
   dto.UploadSuccessResponse:
     properties:
       data:
         $ref: '#/definitions/dto.UploadResponse'
       message:
-        example: File uploaded successfully
+        example: Image uploaded successfully
         type: string
       meta: {}
       success:
@@ -111,8 +114,8 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Accepts a multipart image file and validates it without storing
-        the file.
+      description: Accepts a multipart image file, validates it, uploads it to MinIO,
+        and persists metadata to PostgreSQL.
       parameters:
       - description: Image file
         in: formData
@@ -134,7 +137,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/response.ErrorBody'
-      summary: Upload image for validation
+      summary: Upload image and persist metadata
       tags:
       - Images
 swagger: "2.0"

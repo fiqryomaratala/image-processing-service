@@ -12,8 +12,8 @@ import (
 )
 
 // Upload godoc
-// @Summary Upload image for validation
-// @Description Accepts a multipart image file and validates it without storing the file.
+// @Summary Upload image and persist metadata
+// @Description Accepts a multipart image file, validates it, uploads it to MinIO, and persists metadata to PostgreSQL.
 // @Tags Images
 // @Accept mpfd
 // @Produce json
@@ -56,5 +56,5 @@ func (h *Handler) Upload(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, "File uploaded successfully", result, nil)
+	response.Success(c, "Image uploaded successfully", result, nil)
 }
